@@ -12,7 +12,7 @@ BitWriter::~BitWriter(){
 }
 
 void BitWriter::write_bit(bool bit){
-    buffer = (buffer << 1) | bit;
+    buffer = (buffer << 1) | (bit ? 1 : 0);
     bits_used++;
 
     if (bits_used == 8){
@@ -39,13 +39,15 @@ BitReader::BitReader(const std::string& file_name) : input_file(file_name, std::
 
 std::optional<bool> BitReader::read_bit(){
     if (bits_remaining == 0){
-        if (!input_file.get(reinterpret_cast<char&>(buffer))){
+        char next_byte;
+        if (!input_file.get(next_byte)) {
             return std::nullopt;
-        };
+        }
+        buffer = static_cast<unsigned char>(next_byte);
         bits_remaining = 8;
     }
 
-    bool bit = (buffer >> (bits_remaining - 1)) & 1;
+    bool bit = (buffer & (1 << (bits_remaining - 1))) != 0;
     bits_remaining--;
     return bit;
 }

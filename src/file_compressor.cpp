@@ -2,41 +2,51 @@
 #include "frequency_counter.hpp"
 #include "huffman_codec.hpp"
 
-void serialize_tree(huffman_node* root, std::ofstream& out_file){
+void serialize_tree(huffman_node* root, BitWriter& bit_writer){
     if (!root) return;
 
-    if (!root->left && !root->right){
-        out_file.put('1');
-        out_file.put(root->ch);
+    if (!root->left && !root->right) {
+        // Leaf node: write marker '1' followed by the character
+        bit_writer.write_bit(true); // Write '1' as a single bit
+        for (int i = 7; i >= 0; i--) { // Write the character as 8 bits
+            bit_writer.write_bit((root->ch >> i) & 1);
+        }
     } else {
-        out_file.put('0');
-        serialize_tree(root->left, out_file);
-        serialize_tree(root->right, out_file);
+        // Internal node: write marker '0'
+        bit_writer.write_bit(false); // Write '0' as a single bit
+        serialize_tree(root->left, bit_writer);
+        serialize_tree(root->right, bit_writer);
     }
 }
 
-huffman_node* deserialize_tree(std::ifstream& in_file){
-    char marker;
-    in_file.get(marker);
+huffman_node* deserialize_tree(BitReader& bit_reader) {
+    std::optional<bool> marker_opt = bit_reader.read_bit();
+    if (!marker_opt) {
+        throw std::runtime_error("Unexpected end of file while reading tree");
+    }
+    bool marker = *marker_opt;
 
-    if (marker == '1'){
-        char ch;
-        in_file.get(ch);
-        return new huffman_node(ch, 0); // frequency not needed for reconstruction
-    } else if (marker == '0'){
-        huffman_node* left = deserialize_tree(in_file);
-        huffman_node* right = deserialize_tree(in_file);
-        huffman_node* node = new huffman_node('\0', 0); //internal node
-
+    if (marker) {
+        char ch = 0;
+        for (int i = 0; i < 8; i++) {
+            auto bit_opt = bit_reader.read_bit();
+            if (!bit_opt) {
+                throw std::runtime_error("Unexpected end of file while reading character");
+            }
+            ch = (ch << 1) | *bit_opt;
+        }
+        return new huffman_node(ch, 0);
+    } else {
+        huffman_node* left = deserialize_tree(bit_reader);
+        huffman_node* right = deserialize_tree(bit_reader);
+        huffman_node* node = new huffman_node('\0', 0);
         node->left = left;
         node->right = right;
         return node;
-    } else {
-        throw std::runtime_error("Invalid tree format in file");
     }
 }
 
-void compress_file(const std::string& input_file, const std::string& output_file){
+void compress_file(const std::string& input_file, const std::string& output_file) {
     // Build the frequency map
     std::unordered_map<char, int> freq_map = char_freq(input_file);
 
@@ -47,43 +57,68 @@ void compress_file(const std::string& input_file, const std::string& output_file
     std::unordered_map<char, std::string> huffman_codes;
     generate_codes(root, "", huffman_codes);
 
-    // Open output file
-    std::ofstream out_file(output_file, std::ios::binary);
-    if (!out_file.is_open()){
-        throw std::runtime_error("Failed to open the output file");
-    }
+    // Create a single BitWriter for both tree and data
+    BitWriter bit_writer(output_file);
 
-    // Serialize
-    serialize_tree(root, out_file);
-    out_file.close();
-    
-    // Encode the input data
-    HuffmanEncoder encoder(huffman_codes, output_file);
-    
+    // First serialize the tree
+    serialize_tree(root, bit_writer);
+
+    // Then encode the data
     std::ifstream in_file(input_file, std::ios::binary);
-    std::string input_data((std::istreambuf_iterator<char>(in_file)), std::istreambuf_iterator<char>());
-    in_file.close();
+    if (!in_file.is_open()) {
+        throw std::runtime_error("Failed to open input file for encoding");
+    }
     
-    encoder.encode(input_data);
-    encoder.finish();
+    std::string input_data((std::istreambuf_iterator<char>(in_file)), 
+                          std::istreambuf_iterator<char>());
+    in_file.close();
 
-    // Clean up
+    // Encode each character
+    for (char ch : input_data) {
+        const std::string& code = huffman_codes.at(ch);
+        for (char bit : code) {
+            bit_writer.write_bit(bit == '1');
+        }
+    }
+    
+    bit_writer.flush();
     delete_tree(root);
 }
 
-void decompress_file(const std::string& input_file, const std::string& output_file){
-    std::ifstream in_file(input_file, std::ios::binary);
-    if (!in_file.is_open()){
-        throw std::runtime_error("Failed to open input file");
+void decompress_file(const std::string& input_file, const std::string& output_file) {
+    // Create BitReader
+    BitReader bit_reader(input_file);
+
+    // First read and reconstruct the tree
+    huffman_node* root = deserialize_tree(bit_reader);
+    if (!root) {
+        throw std::runtime_error("Failed to deserialize Huffman tree");
     }
 
-    huffman_node* root = deserialize_tree(in_file);
-    in_file.close();
+    // Open output file
+    std::ofstream out_file(output_file, std::ios::binary);
+    if (!out_file.is_open()) {
+        delete_tree(root);
+        throw std::runtime_error("Failed to open output file");
+    }
 
-    HuffmanDecoder decoder(root, input_file);
-    decoder.decode(output_file);
-    
-    // Clean up
+    // Decode until we reach end of input
+    huffman_node* current = root;
+    while (true) {
+        std::optional<bool> bit = bit_reader.read_bit();
+        if (!bit) {
+            break;  // End of input
+        }
+
+        current = *bit ? current->right : current->left;
+
+        if (!current->left && !current->right) {  // Leaf node
+            out_file.put(current->ch);
+            current = root;
+        }
+    }
+
+    out_file.close();
     delete_tree(root);
 }
 

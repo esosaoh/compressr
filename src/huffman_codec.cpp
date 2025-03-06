@@ -17,34 +17,33 @@ void HuffmanEncoder::finish(){
     bit_writer.flush();
 }
 
-HuffmanDecoder::HuffmanDecoder(huffman_node* huffman_tree_root, const std::string& input_file)
-    : root(huffman_tree_root), bit_reader(input_file) {}
+HuffmanDecoder::HuffmanDecoder(huffman_node* huffman_tree_root, BitReader& reader)
+    : root(huffman_tree_root), bit_reader(reader) {}
 
-void HuffmanDecoder::decode(const std::string& output_file){
+void HuffmanDecoder::decode(const std::string& output_file) {
     std::ofstream out_file(output_file, std::ios::binary);
-    if (!out_file.is_open()){
+    if (!out_file.is_open()) {
         throw std::runtime_error("Failed to open output file");
     }
 
     huffman_node* current = root;
-
-    while(true){
-        std::optional<bool> bit = bit_reader.read_bit();
-        if (!bit.has_value()) {
-            break; // end of file reached
+    while (true) {
+        std::optional<bool> bit_opt = bit_reader.read_bit();
+        if (!bit_opt) {
+            break;  // End of input file
         }
 
-        if (*bit){
+        if (*bit_opt) {
             current = current->right;
-        } 
-        else {
+        } else {
             current = current->left;
         }
 
-        if (!current->left && !current->right){
+        if (!current->left && !current->right) {  // Leaf node
             out_file.put(current->ch);
-            current = root;
+            current = root;  // Reset for next character
         }
     }
+
     out_file.close();
 }

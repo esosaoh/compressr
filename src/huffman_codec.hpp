@@ -16,13 +16,13 @@ class HuffmanEncoder{
         void finish();
 };
 
-class HuffmanDecoder{
+class HuffmanDecoder {
     private:
         huffman_node* root;
-        BitReader bit_reader;
+        BitReader& bit_reader;
 
     public:
-        HuffmanDecoder(huffman_node* huffman_tree_root, const std::string& input_file);
+        HuffmanDecoder(huffman_node* huffman_tree_root, BitReader& reader);
         void decode(const std::string& output_file);
 };
 
