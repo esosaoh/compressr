@@ -6,14 +6,12 @@ void serialize_tree(huffman_node* root, BitWriter& bit_writer){
     if (!root) return;
 
     if (!root->left && !root->right) {
-        // Leaf node: write marker '1' followed by the character
-        bit_writer.write_bit(true); // Write '1' as a single bit
-        for (int i = 7; i >= 0; i--) { // Write the character as 8 bits
+        bit_writer.write_bit(true);
+        for (int i = 7; i >= 0; i--) { 
             bit_writer.write_bit((root->ch >> i) & 1);
         }
     } else {
-        // Internal node: write marker '0'
-        bit_writer.write_bit(false); // Write '0' as a single bit
+        bit_writer.write_bit(false);
         serialize_tree(root->left, bit_writer);
         serialize_tree(root->right, bit_writer);
     }
@@ -60,10 +58,8 @@ void compress_file(const std::string& input_file, const std::string& output_file
     // Create a single BitWriter for both tree and data
     BitWriter bit_writer(output_file);
 
-    // First serialize the tree
     serialize_tree(root, bit_writer);
 
-    // Then encode the data
     std::ifstream in_file(input_file, std::ios::binary);
     if (!in_file.is_open()) {
         throw std::runtime_error("Failed to open input file for encoding");
@@ -86,33 +82,29 @@ void compress_file(const std::string& input_file, const std::string& output_file
 }
 
 void decompress_file(const std::string& input_file, const std::string& output_file) {
-    // Create BitReader
     BitReader bit_reader(input_file);
 
-    // First read and reconstruct the tree
     huffman_node* root = deserialize_tree(bit_reader);
     if (!root) {
         throw std::runtime_error("Failed to deserialize Huffman tree");
     }
 
-    // Open output file
     std::ofstream out_file(output_file, std::ios::binary);
     if (!out_file.is_open()) {
         delete_tree(root);
         throw std::runtime_error("Failed to open output file");
     }
 
-    // Decode until we reach end of input
     huffman_node* current = root;
     while (true) {
         std::optional<bool> bit = bit_reader.read_bit();
         if (!bit) {
-            break;  // End of input
+            break; 
         }
 
         current = *bit ? current->right : current->left;
 
-        if (!current->left && !current->right) {  // Leaf node
+        if (!current->left && !current->right) {  
             out_file.put(current->ch);
             current = root;
         }
