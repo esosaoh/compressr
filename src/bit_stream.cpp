@@ -37,10 +37,10 @@ BitReader::BitReader(const std::string& file_name) : input_file(file_name, std::
     }
 }
 
-bool BitReader::read_bit(){
+std::optional<bool> BitReader::read_bit(){
     if (bits_remaining == 0){
         if (!input_file.get(reinterpret_cast<char&>(buffer))){
-            throw std::runtime_error("Failed to read from input file");
+            return std::nullopt;
         };
         bits_remaining = 8;
     }

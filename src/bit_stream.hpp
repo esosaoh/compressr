@@ -2,6 +2,7 @@
 #define BIT_STREAM_HPP
 
 #include <fstream>
+#include <optional>
 
 class BitWriter{
     private:
@@ -24,7 +25,7 @@ class BitReader{
 
     public:
         BitReader(const std::string& file_name);
-        bool read_bit();
+        std::optional<bool> read_bit();
 };
 
 
