@@ -37,4 +37,11 @@ void generate_codes(huffman_node* root, const std::string& code, std::unordered_
 }
 
 
-void delete_tree(huffman_node* root){}
+void delete_tree(huffman_node* root){
+    if (!root) return;
+
+    delete_tree(root->left);
+    delete_tree(root->right);
+
+    delete root;
+}
