@@ -22,6 +22,7 @@ huffman_node * build_huffman_tree(const std::unordered_map<char, int>& freq_map)
     }
 
     huffman_node* root = pq.top();
+    return root;
 }
 
 
