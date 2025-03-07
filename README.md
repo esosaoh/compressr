@@ -1,4 +1,4 @@
-# Huffman Compression
+# Compressr
 
 A C++ implementation of Huffman coding for file compression & decompression.
 
