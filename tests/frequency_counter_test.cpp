@@ -2,7 +2,7 @@
 #include <unordered_map>
 #include "frequency_counter.hpp"
 
-TEST(frequency_counter, char_freq) {
+TEST(frequency_counter, shakespare_text) {
     std::unordered_map<char,int> freq_map = char_freq("../tests/test_input.txt");
     std::unordered_map<char,int> expected = {
         {'A', 2}, {'l', 8}, {' ', 28}, {'t', 9}, {'h', 7}, 
@@ -15,7 +15,13 @@ TEST(frequency_counter, char_freq) {
     ASSERT_EQ(freq_map, expected);
 }
 
-int main(int argc, char **argv) {
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+TEST(frequency_counter, thousand_e) {
+    std::unordered_map<char,int> freq_map = char_freq("../tests/test_input2.txt");
+    ASSERT_EQ(freq_map['e'], 1000);
+    ASSERT_EQ(freq_map['c'], 0);
+}
+
+TEST(frequency_counter, empty_file){
+    std::unordered_map<char,int> freq_map = char_freq("../tests/test_input3.txt");
+    ASSERT_EQ(freq_map.size(), 0);
 }

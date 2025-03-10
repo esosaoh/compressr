@@ -25,6 +25,7 @@ target_include_directories(huffman_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 add_executable(huffman_tests
     tests/frequency_counter_test.cpp
+    tests/huffman_tree_test.cpp
 )
 
 target_link_libraries(huffman_tests

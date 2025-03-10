@@ -11,3 +11,4 @@ CMakeUserPresets.json
 .cache
 output.txt
 *.bin
+huffman_test
