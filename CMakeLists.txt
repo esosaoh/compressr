@@ -21,7 +21,11 @@ add_library(huffman_lib
     src/huffman_tree.cpp
 )
 
-target_include_directories(huffman_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(huffman_lib
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
 
 add_executable(huffman_tests
     tests/frequency_counter_test.cpp
@@ -32,9 +36,9 @@ add_executable(huffman_tests
 
 target_link_libraries(huffman_tests
     PRIVATE
-    huffman_lib
-    GTest::gtest
-    GTest::gtest_main
+        huffman_lib
+        GTest::gtest
+        GTest::gtest_main
 )
 
 include(GoogleTest)
